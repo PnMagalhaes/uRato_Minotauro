@@ -34,11 +34,11 @@ void setSP2(int spL, int spR);
 
 // ****************************************************************************
 //
-#define M1_IN1 LATGbits.LATG9
-#define M1_IN2 LATDbits.LATD7
-#define M2_IN1 LATGbits.LATG8
-#define M2_IN2 LATGbits.LATG7
-#define STDBY  LATDbits.LATD5
+#define M1_IN1 LATBbits.LATB5
+#define M1_IN2 LATBbits.LATB6
+#define M2_IN1 LATBbits.LATB14
+#define M2_IN2 LATBbits.LATB8
+#define STDBY  LATBbits.LATB7
 
 #define LED1   LATEbits.LATE0
 #define LED2   LATEbits.LATE1
@@ -161,6 +161,12 @@ void initPIC32(void)
 //  1-Bridge control
 	STDBY = 1;				// Half-Bridge ON
 
+    TRISBbits.TRISB5 = OUT;
+    TRISBbits.TRISB6 = OUT;
+    TRISBbits.TRISB7 = OUT;
+    TRISBbits.TRISB8 = OUT;
+    TRISBbits.TRISB14 = OUT;
+    
 	M1_IN1 = M1_IN2 = 0;	// STOP
 	M2_IN1 = M2_IN2 = 0;	// STOP
 
@@ -170,13 +176,13 @@ void initPIC32(void)
     LATGbits.LATG8 = OUT;  		// M2_IN1
     LATGbits.LATG7 = OUT;  		// M2_IN2
 
-//  2-Leds
+    //  2-Leds
 	LATECLR = 0x000F;		// Leds 4-1 OFF
 	// LATBCLR = 0x8000;		// Led 5 OFF
 	TRISECLR = 0x000F;		// RE3-0 as output
-	TRISBCLR = 0x8000;		// RB15 as output
+	//TRISBCLR = 0x8000;		// RB15 as output
 
-//  3-Sensors
+    //  3-Sensors
 	//LATBbits.LATB10 = 0;		// Disable Obstacle sensors output
 	//TRISBbits.TRISB10 = OUT;	// EN_OBST_SENS as output
 	TRISBbits.TRISB9 = IN;		// IV BEACON as input
@@ -187,10 +193,10 @@ void initPIC32(void)
 	//LATD = LATD | 0x00EC;		// Line sensor: output latches must be set
 	//TRISD = TRISD & ~(0x00EC);	// Line sensor: 5 bits as output
 
-//  4- start/stop buttons 
+    //  4- start/stop buttons 
 	CNPUE = CNPUE | 0x60;		// Activate weak pull-ups in input ports RB3 and RB4
 
-// ADC Config
+    // ADC Config
 	AD1PCFGbits.PCFG0 = 0;		// RB0 configured as analog input (AN0)
 	AD1PCFGbits.PCFG1 = 0;		// RB1 configured as analog input (AN1)
 	AD1PCFGbits.PCFG2 = 0;		// RB2 configured as analog input (AN2)
@@ -207,7 +213,7 @@ void initPIC32(void)
 	AD1CON2bits.SMPI = 2 - 1;	// Interrupt is generated after 2 samples
 	AD1CON1bits.ON = 1;			// Enable A/D converter
 
-// Encoders
+    // Encoders
 	INTCONbits.INT1EP = 1;		// interrupt generated on rising edge
 	INTCONbits.INT4EP = 1;		// interrupt generated on rising edge
 
