@@ -45,6 +45,8 @@ void setSP2(int spL, int spR);
 #define LED3   LATEbits.LATE2
 #define LED4   LATEbits.LATE3
 
+#define LINE_SENSOR  LATDbits.LATD2
+
 #define M1_FORWARD M1_IN1=1; M1_IN2=0
 #define M1_REVERSE M1_IN1=0; M1_IN2=1
 
@@ -79,15 +81,15 @@ static bool _closedLoopControl = false;
 
 // ***************************************************************************
 // Robot dimensions
-#define WHEEL2WHEEL_DIST 165	// mm
-#define WHEEL_DIAM		80.6	// mm
+#define WHEEL2WHEEL_DIST 250	// mm
+#define WHEEL_DIAM		66.5	// mm
 #define	WHEEL_PER		(PI * WHEEL_DIAM)
 
 // ***************************************************************************
 // Motor parameters
-#define RPM_OUT			160		// RPM in the output shaft @ 9.6V
-#define	GEAR_RATIO		10		// Gear box ratio
-#define	ENCODER_PULSES	100		// Encoder, pulses per revolution
+#define RPM_OUT			210		// RPM in the output shaft @ 9.6V
+#define	GEAR_RATIO		34		// Gear box ratio
+#define	ENCODER_PULSES	341.2		// Encoder, pulses per revolution
 
 // ***************************************************************************
 // Controller parameters
@@ -185,8 +187,10 @@ void initPIC32(void)
     //  3-Sensors
 	//LATBbits.LATB10 = 0;		// Disable Obstacle sensors output
 	//TRISBbits.TRISB10 = OUT;	// EN_OBST_SENS as output
-	TRISBbits.TRISB9 = IN;		// IV BEACON as input
-
+	//TRISBbits.TRISB9 = IN;		// IV BEACON as input
+    
+    LATDbits.LATD2 = IN;        // Line sensor as input   
+    LATEbits.LATE5 = IN;        // IV BEACON as input 
     //LATECLR = 0x0020;			// Disable line sensor
 	//TRISEbits.TRISE5 = OUT;		// EN_GND_SENS as output
 
@@ -273,32 +277,32 @@ void readAnalogSensors(void)
 //
 // Input: gain [1...100] (100 -> maximum gain)
 //    Default value is 0  (gain = 50)
-unsigned int readLineSensors(int gain)
+unsigned int readLineSensors(void)
 {
 	unsigned int sensValue;
-
-	if(gain <= 0)
-		gain = 50;
-	else if(gain > 100)
-		gain = 100;
-
-// discharge capacitors
-    LATECLR = 0x0020;			// Disable line sensor
-	LATD = LATD | 0x00EC;		// All 5 outputs set (just in case, set in initPIC32() )
-	TRISD = TRISD & ~(0x00EC);	// 5 bits as output
-
-	delay(1);					// Wait, discharging capacitors
-// charge capacitors
-	TRISD = TRISD | 0x00EC;		// 5 bits as input
-    LATESET = 0x0020;			// Enable line sensor
-
-	delay(gain);				// wait 5 ms (for the default gain)
-								// this time is critical... capacitors take time to charge
-								// too little time: output capacitors don't charge enough
-	sensValue = PORTD >> 2;
-	sensValue = (sensValue & 0x0003) | ((sensValue & 0x38) >> 1);
-    LATECLR = 0x0020;			// Disable line sensor
-
+    
+//	if(gain <= 0)
+//		gain = 50;
+//	else if(gain > 100)
+//		gain = 100;
+//
+//// discharge capacitors
+//    LATECLR = 0x0020;			// Disable line sensor
+//	LATD = LATD | 0x00EC;		// All 5 outputs set (just in case, set in initPIC32() )
+//	TRISD = TRISD & ~(0x00EC);	// 5 bits as output
+//
+//	delay(1);					// Wait, discharging capacitors
+//// charge capacitors
+//	TRISD = TRISD | 0x00EC;		// 5 bits as input
+//    LATESET = 0x0020;			// Enable line sensor
+//
+//	delay(gain);				// wait 5 ms (for the default gain)
+//								// this time is critical... capacitors take time to charge
+//								// too little time: output capacitors don't charge enough
+//	sensValue = PORTD >> 2;
+//	sensValue = (sensValue & 0x0003) | ((sensValue & 0x38) >> 1);
+//    LATECLR = 0x0020;			// Disable line sensor
+    sensValue = PORTDbits.RD2;
 	return sensValue;
 }
 
@@ -646,3 +650,30 @@ void __gxx_personality_v0(void) { exit(1); }
 /* *****************************************************************************
  End of File
  */
+
+
+
+// Function replacements to redirect stdin/stdout to USART1
+// These functions are called by printf(), scanf(), ...
+void _mon_putc(char c) {
+    while (U1STAbits.UTXBF); // Wait till buffer available (TX Buffer Full)
+    U1TXREG = c; // Put char in Tx buffer
+    return;
+}
+
+int _mon_getc(int canblock) {    
+    // Reset Overrun Eror Flag - if set UART does not receive any chars
+    if (U1STAbits.OERR)
+        U1STAbits.OERR;
+
+    if (canblock == 0) {
+        if (U1STAbits.URXDA) {            
+            return (int) U1RXREG;;
+        }
+    }
+    else {
+        while (!U1STAbits.URXDA);
+        return (int) U1RXREG;
+    }
+    return -1;
+}

@@ -64,8 +64,8 @@
 //#define enableGroundSens() {LATEbits.LATE5=1;}
 //#define disableGroundSens() {LATEbits.LATE5=0;}
 
-#define readBeaconSens() (PORTBbits.RB9)
-
+//#define readBeaconSens() (PORTBbits.RB9)
+#define readBeaconSens() (PORTEbits.RE5)
 
 // ****************************************************************************
 // Global variables
@@ -119,7 +119,7 @@ void readAnalogSensors(void);
  *      if 0, a default value is used; otherwise the given value is used.
  *  \return A 5-bit value representing the current measurements of the sensors. 
  */
-unsigned int readLineSensors(int gain);	// for default value of gain, pass 0
+unsigned int readLineSensors();	// for default value of gain, pass 0
 
 
 /** \brief turn on/off leds
@@ -204,6 +204,9 @@ void setVel2(int velLeft, int velRight);
  */
 double normalizeAngle(double angle);
 
+void _mon_putc(char c);
+
+int _mon_getc(int canblock);
 #endif /* _DINOTAURODRIVERS_H */
 
 /* *****************************************************************************
