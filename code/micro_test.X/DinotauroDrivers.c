@@ -47,8 +47,8 @@ void setSP2(int spL, int spR);
 
 #define LINE_SENSOR  LATDbits.LATD2
 
-#define M1_FORWARD M1_IN1=1; M1_IN2=0
-#define M1_REVERSE M1_IN1=0; M1_IN2=1
+#define M1_FORWARD M1_IN1=0; M1_IN2=1
+#define M1_REVERSE M1_IN1=1; M1_IN2=0
 
 #define M2_FORWARD M2_IN1=0; M2_IN2=1
 #define M2_REVERSE M2_IN1=1; M2_IN2=0
@@ -230,17 +230,18 @@ void initPIC32(void)
 	IEC0bits.INT1IE = 1;		// Enable INT1 interrupts
 	IEC0bits.INT4IE = 1;		// Enable INT4 interrupts
 
-//	pwmLeft = pwmRight = 0;
-//	_closedLoopControl = true;
-//	counterLeft = counterRight = 0;
-//	spLeft = spRight = 0;
-//	theta = 0.0;				// This way, global coordinate system is 
+	pwmLeft = pwmRight = 0;
+	_closedLoopControl = true;
+	counterLeft = counterRight = 0;
+	spLeft = spRight = 0;
+	theta = 0.0;				// This way, global coordinate system is 
 								// X top, Y left       X
 								//                     ^
 								//                     |								//                Y <---
 // Fill in the battery array
 //	for(i=0; i < DIM_BAT_ARRAY; i++)
 //		readAnalogSensors();
+    
 }
 
 // ****************************************************************************
@@ -550,6 +551,8 @@ void updateLocalization(int encLeft, int encRight)
 	xpos = xpos + dCenter * cos(theta);
 
 	theta = normalizeAngle(theta + phi);
+    
+    printf("r:%f", xpos);
 }
 
 double normalizeAngle(double angle)
@@ -598,12 +601,13 @@ void _int_(_TIMER_2_VECTOR) isr_t2(void)
 	if(_closedLoopControl == true)
 	{
 		readEncoders(&encLeft, &encRight);
+        printf("\n\nleft:%d, right:%d\n\n", encLeft, encRight);
 		updateLocalization(encLeft, encRight);
 
 		encLeftAcc += encLeft;
 		encRightAcc += encRight;
-
-		if(cntT2Ticks & 0x01)	// This way SAMPLING_T is 20 ms
+        
+    	if(cntT2Ticks & 0x01)	// This way SAMPLING_T is 20 ms
 		{
 			pid(spLeft, encLeftAcc, spRight, encRightAcc);	// spLeft, spRight are global vars
 			encRightAcc = encLeftAcc = 0;
@@ -623,11 +627,14 @@ void _int_(_TIMER_2_VECTOR) isr_t2(void)
 //
 void _int_(_EXTERNAL_1_VECTOR) isr_enc_left(void)
 {
-	if(PORTEbits.RE6 == 1)
+	if(PORTDbits.RD8 == 1){
 		counterLeft++;
-	else
+        led(2, 1);
+    }
+	else{
 		counterLeft--;
-
+        led(2, 0);
+    }
 	IFS0bits.INT1IF = 0;
 
 }
@@ -638,11 +645,15 @@ void _int_(_EXTERNAL_1_VECTOR) isr_enc_left(void)
 //
 void _int_(_EXTERNAL_4_VECTOR) isr_enc_right(void)
 {
-	if(PORTEbits.RE7 == 1)
+    
+	if(PORTEbits.RE7 == 1){
 		counterRight++;
-	else
+        led(1, 1);
+    }
+	else{
 		counterRight--;
-
+        led(1, 0);
+    }
 	IFS0bits.INT4IF = 0;
 }
 
